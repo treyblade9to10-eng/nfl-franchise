@@ -374,3 +374,4 @@ input[type=range] { width: 100%; accent-color: var(--gold); margin: 8px 0 14px; 
 .pl.mine .pc { color: var(--text); }
 
 .sbrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}.sbrow>div{flex:1;min-width:0}.sbrow select{max-width:52%}
+.sbnext{display:flex;gap:10px;align-items:flex-start;background:rgba(242,182,50,.12);border:1px solid rgba(242,182,50,.5);border-radius:10px;padding:10px;margin:10px 0}.sbnext input{width:22px;height:22px;margin-top:2px;flex:none}
