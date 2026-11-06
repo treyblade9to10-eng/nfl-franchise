@@ -372,3 +372,5 @@ input[type=range] { width: 100%; accent-color: var(--gold); margin: 8px 0 14px; 
 .pl.k-to .pt { color: #ff8a7a; font-weight: 700; }
 .pl.k-neu .pt { color: var(--dim); }
 .pl.mine .pc { color: var(--text); }
+
+.sbrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}.sbrow>div{flex:1;min-width:0}.sbrow select{max-width:52%}
