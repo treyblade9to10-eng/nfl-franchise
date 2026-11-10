@@ -432,7 +432,7 @@ var Off = (function () {
     if (s.faDay > 3) { preseason(); L.news('Free agency is winding down. Time for cut-down day.', 'big'); }
   }
 
-  return { makeFiller: makeFiller, makeDraftClass: makeDraftClass, draftClass: draftClass, grade: grade, freeAgents: freeAgents, needScore: needScore,
+  return { newPlayer: newPlayer, makeFiller: makeFiller, makeDraftClass: makeDraftClass, draftClass: draftClass, grade: grade, freeAgents: freeAgents, needScore: needScore,
     setupFantasy: setupFantasy, autoTag: autoTag, beginFantasy: beginFantasy, pool: pool, fdCurrent: fdCurrent, fdPick: fdPick, cpuFdPick: cpuFdPick, fdSimToUser: fdSimToUser, fdAutoAll: fdAutoAll, tagScore: tagScore,
     preseason: preseason, canRestructure: canRestructure, restructure: restructure, capFix: capFix, cutDown: cutDown, deadIf: deadIf, release: release, cpuFillRosters: cpuFillRosters, startSeason: startSeason,
     startDraft: startDraft, drCurrent: drCurrent, draftPlayer: draftPlayer, cpuDraftPick: cpuDraftPick, drSimToUser: drSimToUser, drAutoAll: drAutoAll,

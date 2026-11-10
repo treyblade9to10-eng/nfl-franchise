@@ -162,7 +162,75 @@ var Sim = (function () {
     }
     return tm;
   }
-  // full game. o = {neutral, force:{h,a} final score, playoff, noStats}
+
+  // ---------- "I know these stats, sim the rest" ----------
+  // fix = { playerId: { key: value } }. Typed stats are kept exactly; teammates' numbers
+  // are moved around so team totals still add up (QB = sum of catches, etc.).
+  // Returns how many extra touchdowns the team needs beyond what the sim gave it.
+  function applyFix(box, tid, tm, fix, oppTid) {
+    var ids = Object.keys(fix).filter(function (id) { var p = L.player(+id); return p && p.t === tid; });
+    if (!ids.length) return 0;
+    ids.forEach(function (id) { if (!box[id]) box[id] = { id: +id, t: tid }; });
+    var mine = Object.keys(box).filter(function (id) { return box[id].t === tid; }).map(function (id) { return box[id]; });
+    var F = function (l, k) { var f = fix[l.id]; return f && f[k] != null ? f[k] : null; };
+    var g = function (l, k) { return l[k] || 0; };
+    var sum = function (k, list) { return (list || mine).reduce(function (a, l) { return a + g(l, k); }, 0); };
+    var lst = L.starters(tid), qbP = lst.QB && lst.QB[0] && lst.QB[0].p;
+    var qb = null; ids.forEach(function (id) { var p = L.player(+id); if (p.pos === 'QB' && (F(box[id], 'py') != null || F(box[id], 'cmp') != null || F(box[id], 'att') != null || F(box[id], 'ptd') != null || F(box[id], 'int') != null)) qb = box[id]; });
+    if (!qb && qbP) qb = box[qbP.id] || (box[qbP.id] = { id: qbP.id, t: tid });
+    var sackY = qb ? Math.max(0, sum('rcy') - g(qb, 'py')) : 0;
+    // spread `total` of key k: typed players keep their number, the rest share what is left
+    function spread(k, total, pool) {
+      var fixedL = [], free = [];
+      (pool || mine).forEach(function (l) { (F(l, k) != null ? fixedL : free).push(l); });
+      fixedL.forEach(function (l) { l[k] = F(l, k); });
+      var left = Math.max(0, total - sum(k, fixedL)), cur = sum(k, free);
+      if (!free.length) return;
+      if (cur <= 0) { if (left > 0) free[0][k] = g(free[0], k) + left; return; }
+      var acc = 0, big = free[0];
+      free.forEach(function (l) { var v = Math.floor(g(l, k) / cur * left); l[k] = v; acc += v; if (g(l, k) > g(big, k)) big = l; });
+      big[k] += left - acc;
+    }
+    var isRec = function (l) { return l !== qb && (g(l, 'tgt') > 0 || g(l, 'rec') > 0 || F(l, 'rec') != null || F(l, 'rcy') != null || F(l, 'rctd') != null); };
+    var isRush = function (l) { return g(l, 'car') > 0 || F(l, 'car') != null || F(l, 'ry') != null || F(l, 'rtd') != null; };
+    var isDef = function (l) { var p = L.player(l.id); return p && L.DEF.indexOf(p.pos) >= 0; };
+    var recs = mine.filter(isRec), rush = mine.filter(isRush), defs = mine.filter(isDef);
+    var want = function (k, list, gen) { var fs = 0, any = false; list.forEach(function (l) { var f = F(l, k); if (f != null) { fs += f; any = true; } }); return any ? Math.max(gen, fs + (fs > gen ? Math.round(gen * 0.3) : 0)) : gen; };
+    // touchdowns (they change the score)
+    var genTD = sum('rctd', recs) + sum('rtd', rush);
+    var recTDf = 0, rushTDf = 0; recs.forEach(function (l) { recTDf += F(l, 'rctd') || 0; }); rush.forEach(function (l) { rushTDf += F(l, 'rtd') || 0; });
+    var qbPTD = qb ? F(qb, 'ptd') : null;
+    var passMin = qbPTD != null ? Math.max(qbPTD, recTDf) : recTDf;
+    var wantTD = Math.max(genTD, passMin + rushTDf), P;
+    if (qbPTD != null) P = passMin; else P = U.clamp(sum('rctd', recs), recTDf, wantTD - rushTDf);
+    var R = wantTD - P;
+    if (qb && qbPTD != null && qbPTD < recTDf) fix[qb.id].ptd = recTDf;
+    if (recs.length) spread('rctd', P, recs);
+    if (rush.length) spread('rtd', R, rush);
+    // receiving: QB numbers decide totals if typed, otherwise keep the sim's totals
+    var recT = qb && F(qb, 'cmp') != null ? F(qb, 'cmp') : want('rec', recs, sum('rec', recs));
+    var ydT = qb && F(qb, 'py') != null ? F(qb, 'py') + sackY : want('rcy', recs, sum('rcy', recs));
+    if (recs.length) { spread('rec', recT, recs); spread('rcy', ydT, recs); }
+    recs.forEach(function (l) { if (g(l, 'tgt') < g(l, 'rec')) l.tgt = g(l, 'rec'); if (g(l, 'rec') === 0 && g(l, 'rcy') !== 0 && F(l, 'rcy') == null) { l.rcy = 0; } });
+    recs.forEach(function (l) { if (g(l, 'rcy') > 0 && g(l, 'rec') === 0 && F(l, 'rec') == null) { l.rec = Math.max(1, Math.round(l.rcy / 13)); l.tgt = Math.max(g(l, 'tgt'), l.rec + 1); } if (g(l, 'rec') > 0 && g(l, 'rcy') === 0 && F(l, 'rcy') == null && !(qb && F(qb, 'py') != null)) l.rcy = l.rec * U.ri(6, 12); });
+    if (qb) {
+      ['cmp', 'att', 'py', 'ptd', 'int'].forEach(function (k) { if (F(qb, k) != null) qb[k] = F(qb, k); });
+      if (F(qb, 'cmp') == null) qb.cmp = sum('rec', recs);
+      if (F(qb, 'py') == null) qb.py = sum('rcy', recs) - sackY;
+      if (F(qb, 'ptd') == null) qb.ptd = sum('rctd', recs);
+      if (F(qb, 'att') == null) qb.att = Math.max(g(qb, 'cmp'), sum('tgt', recs));
+      if (g(qb, 'att') < g(qb, 'cmp')) qb.att = qb.cmp;
+      if (F(qb, 'int') != null) { var od = Object.keys(box).filter(function (id) { return box[id].t === oppTid && (box[id].tkl || box[id].dint); }).map(function (id) { return box[id]; }); if (od.length) spread('dint', F(qb, 'int'), od); }
+    }
+    // rushing
+    if (rush.length) { spread('car', want('car', rush, sum('car', rush)), rush); spread('ry', want('ry', rush, sum('ry', rush)), rush); }
+    rush.forEach(function (l) { if (g(l, 'ry') > 0 && g(l, 'car') === 0 && F(l, 'car') == null) l.car = Math.max(1, Math.round(l.ry / 4.5)); });
+    // defense
+    ['tkl', 'sk', 'dint', 'ff'].forEach(function (k) { if (defs.some(function (l) { return F(l, k) != null; })) spread(k, want(k, defs, sum(k, defs)), defs); });
+    tm.py = qb ? g(qb, 'py') : tm.py; tm.ry = sum('ry', rush);
+    return wantTD - genTD;
+  }
+  // full game. o = {neutral, force:{h,a} final score, playoff, noStats, fix:{pid:{stat:n}}, fixSide}
   function play(hid, aid, o) {
     o = o || {};
     var luH = lineup(hid), luA = lineup(aid), rH = L.ratingsFrom ? null : null;
@@ -227,7 +295,17 @@ var Sim = (function () {
       inc(k, 'fgm', fgs[side]); inc(k, 'fga', fgs[side] + miss); inc(k, 'xpm', xps[side][0]); inc(k, 'xpa', xps[side][1]);
       inc(line(box, x[1].p), 'punts', x[2].filter(function (d) { return d === 'PUNT'; }).length);
     });
+    if (o.fix) {
+      [['h', hid, th, 'a', aid], ['a', aid, ta, 'h', hid]].forEach(function (x) {
+        var extra = applyFix(box, x[1], x[2], o.fix, x[4]);
+        if (extra > 0 && !o.force) { pts[x[0]] += extra * 7; out.q[x[0]][3] += extra * 7; xps[x[0]][0] += extra; xps[x[0]][1] += extra; }
+      });
+      out.hs = pts.h; out.as = pts.a;
+      if (o.playoff && out.hs === out.as) { var us = o.fixSide || 'h'; pts[us] += 3; fgs[us]++; out.ot = true; out.q.h.push(0); out.q.a.push(0); out.q[us][4] += 3; out.hs = pts.h; out.as = pts.a; }
+    }
     out.box = box; out.tm = { h: th, a: ta };
+    if (o.fix) Object.keys(o.fix).forEach(function (pid) { var f = o.fix[pid], l = box[pid]; if (!l) return; ['fgm', 'fga', 'xpm', 'xpa', 'punts'].forEach(function (k) { if (f[k] != null) l[k] = f[k]; }); if (l.fga < l.fgm) l.fga = l.fgm; if (l.xpa < l.xpm) l.xpa = l.xpm; });
+    if (o.fix) out.fx = true;
     var tt = th.top + ta.top; th.top = Math.round(th.top / tt * 3600); ta.top = 3600 - th.top;
     return out;
   }
@@ -276,6 +354,7 @@ var Sim = (function () {
   }
   function compact(g, wk, full) {
     var c = { h: g.h, a: g.a, hs: g.hs, as: g.as, ot: g.ot, w: wk, q: g.q, ld: leaders(g), live: g.live || false, set: g.set || false, po: g.po || null };
+    if (g.fx) c.fx = true;
     if (full) { c.box = g.box; c.tm = g.tm; if (g.pbp) c.pbp = g.pbp.slice(-80); }
     return c;
   }

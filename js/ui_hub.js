@@ -42,8 +42,8 @@
     var win = Math.round(100 / (1 + Math.exp(-((me.ovr - ro.ovr) + (home ? 1.6 : kind === 'sb' ? 0 : -1.6)) / 3.2)));
     return '<div class="card next"><div class="lbl">' + label + '</div><div class="mu">' + UI.logo(s.user, 48) + '<div class="vs">' + (home ? 'VS' : '@') + '</div>' + UI.logo(opp, 48) + '<div class="mut"><div class="b">' + U.esc(L.teamName(opp)) + '</div><div class="dim">' + UI.rec(ot) + ' &middot; OVR ' + Math.round(ro.ovr) + ' &middot; you win ' + win + '%</div></div></div>' +
       '<button class="btn gold big" data-a="play" data-k="' + kind + '">PLAY THE GAME</button>' +
-      '<div class="g3"><button class="btn" data-a="simgame" data-k="' + kind + '">SIM IT</button><button class="btn" data-a="setscore" data-k="' + kind + '">SET THE SCORE</button><button class="btn" data-a="compare" data-id="' + opp + '">MATCHUP</button></div>' +
-      '<div class="dim small">Played it somewhere else (Madden, Bobble Bowl, in the yard)? SET THE SCORE puts in the real final.</div></div>';
+      '<div class="g3"><button class="btn" data-a="simgame" data-k="' + kind + '">SIM IT</button><button class="btn" data-a="setscore" data-k="' + kind + '">ENTER STATS</button><button class="btn" data-a="compare" data-id="' + opp + '">MATCHUP</button></div>' +
+      '<div class="dim small">Played it somewhere else (Madden, Bobble Bowl, in the yard)? ENTER STATS: type the final and/or the stats you know, and the rest gets simmed.</div></div>';
   }
   V.gameCard = gameCard;
   function divCard(conf, div) {
@@ -117,25 +117,8 @@
     else { var pg = Sim.userPlayoffGame(); if (!pg) return; var r = Sim.play(pg.h, pg.a, { playoff: true, neutral: pg.neutral }); Sim.finishPlayoffGame(pg, r); UI.save(); UI.render(); resultToast(r); }
   };
   function resultToast(g) { var s = S(), me = g.h === s.user, ms = me ? g.hs : g.as, os = me ? g.as : g.hs; U.toast((ms > os ? 'WIN ' : ms < os ? 'LOSS ' : 'TIE ') + ms + '-' + os + ' vs ' + L.shortName(me ? g.a : g.h)); }
-  // type the final score yourself
-  A.setscore = function (d) {
-    var s = S(), m = d.k === 'reg' ? Sim.userGame() : (function () { var pg = Sim.userPlayoffGame(); return pg ? [pg.h, pg.a] : null; })();
-    if (!m) return;
-    UI.modal('<h3>SET THE SCORE</h3><div class="dim small">Type the real final. Stats get filled in to match it.</div><div class="setsc">' +
-      [m[1], m[0]].map(function (tid, i) { return '<div class="ssr">' + UI.logo(tid, 40) + '<b>' + U.esc(L.teamName(tid)) + (i ? ' <span class="dim">(home)</span>' : '') + '</b><input type="number" inputmode="numeric" min="0" max="99" id="ss_' + (i ? 'h' : 'a') + '" placeholder="0"></div>'; }).join('') +
-      '</div><div class="row"><button class="btn gold" data-a="setscoreyes" data-k="' + d.k + '">SAVE FINAL</button><button class="btn ghost" data-a="close">CANCEL</button></div>');
-    setTimeout(function () { var e = U.$('#ss_a'); if (e) e.focus(); }, 50);
-  };
-  A.setscoreyes = function (d) {
-    var s = S(), hs = parseInt(U.$('#ss_h').value, 10), as = parseInt(U.$('#ss_a').value, 10);
-    if (isNaN(hs) || isNaN(as) || hs < 0 || as < 0 || hs > 99 || as > 99) { U.toast('Type both scores (0-99).'); return; }
-    if (hs === 1 || as === 1) { U.toast('A team cannot score exactly 1 point in football.'); return; }
-    if (d.k !== 'reg' && hs === as) { U.toast('Playoff games cannot end in a tie.'); return; }
-    UI.closeModal();
-    if (d.k === 'reg') { var m = Sim.userGame(); var g = Sim.play(m[0], m[1], { force: { h: hs, a: as } }); g.set = true; g.ot = false; Sim.finishUserGame(g); resultToast(g); }
-    else { var pg = Sim.userPlayoffGame(); var r = Sim.play(pg.h, pg.a, { force: { h: hs, a: as }, playoff: true }); r.set = true; Sim.finishPlayoffGame(pg, r); resultToast(r); }
-    UI.save(); UI.render();
-  };
+  // ENTER STATS (score + known player stats) lives in ui_cap.js
+  UI.resultToast = resultToast;
   function showOffer(tr) {
     UI.modal('<h3>TRADE CALL</h3><div class="mu">' + UI.logo(tr.b, 42) + '<div><b>' + U.esc(L.teamName(tr.b)) + '</b><div class="dim">want to make a deal</div></div></div>' +
       '<div class="lbl">YOU GET</div>' + tr.bp.map(function (id) { return UI.playerRow(L.player(id)); }).join('') + tr.bpk.map(function (id) { return '<div class="pkrow">' + L.pickLabel(Trade.pk(id)) + '</div>'; }).join('') +
@@ -154,6 +137,7 @@
   V.roster = function (p) {
     var s = S(), g = p.g || 'OFF', bp = L.byPos(s.user), n = L.roster(s.user).length, mx = L.rosterMax();
     var h = '<div class="hrow"><h2>ROSTER <span class="dim ' + (n > mx ? 'neg' : '') + '">' + n + '/' + mx + '</span></h2><div><button class="btn sm" data-a="compare">MATCHUP</button> <button class="btn sm" data-a="autodepth">BEST DEPTH</button></div></div>';
+    h += '<button class="btn gold wide" data-a="cpnew">+ CREATE A PLAYER</button>';
     h += '<div class="subtabs">' + GROUPS.map(function (x) { return '<button data-a="rgrp" data-g="' + x[0] + '" class="' + (g === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>';
     if (g === 'ALL') {
       h += L.roster(s.user).sort(function (a, b) { return b.ovr - a.ovr; }).map(function (q) { return UI.playerRow(q, '<div class="pst">' + UI.statLine(q) + '</div>'); }).join('');
@@ -219,6 +203,7 @@
       h += '<button class="btn" data-a="dmove" data-id="' + p.id + '" data-dir="top">MAKE STARTER</button><button class="btn" data-a="dmove" data-id="' + p.id + '" data-dir="-1">UP</button><button class="btn" data-a="dmove" data-id="' + p.id + '" data-dir="1">DOWN</button>';
       if (Off.canRestructure(p)) h += '<button class="btn" data-a="restr" data-id="' + p.id + '">RESTRUCTURE</button>';
       if (Sim.tradeOpen()) h += '<button class="btn gold" data-a="shop" data-id="' + p.id + '">FIND TRADES</button>';
+      if (p.cust) h += '<button class="btn gold" data-a="cpedit" data-id="' + p.id + '">EDIT PLAYER</button>';
       h += '<button class="btn red" data-a="release" data-id="' + p.id + '">RELEASE</button>';
     } else if (t && Sim.tradeOpen()) h += '<button class="btn gold" data-a="tradefor" data-id="' + p.id + '">TRADE FOR HIM</button>';
     else if (p.t === 'FA' && s.phase !== 'fantasy') h += '<button class="btn gold" data-a="faoffer" data-id="' + p.id + '">OFFER CONTRACT</button>';
@@ -367,7 +352,7 @@
     h += '</div>';
     var dead = (L.team(s.user).dead || []).filter(function (d) { return d.y >= s.season; });
     if (dead.length || L.deadNow(s.user) > 0) h += '<div class="card"><div class="lbl">DEAD MONEY ' + s.season + '</div><div class="lrow"><span class="ln">Old deals + IR (real)</span><b>' + U.money(L.deadNow(s.user) - U.sum(dead.filter(function (d) { return d.y === s.season; }), function (d) { return d.amt; })) + '</b></div>' + dead.map(function (d) { return '<div class="lrow"><span class="ln">' + U.esc(d.n) + ' <span class="dim">' + d.y + '</span></span><b>' + U.money(d.amt) + '</b></div>'; }).join('') + '</div>';
-    h += '<div class="card"><div class="lbl">HOW IT WORKS</div><div class="small">Each week: PLAY your game (you call every play), SIM it, or SET THE SCORE if you played it somewhere else. Trades close after the deadline. After the Super Bowl: the 7-round NFL Draft, re-sign or franchise-tag your expiring players, 3 days of free agency, then cut-down day (53 players). Hard cap: you have to be under it to start the season. Trades need the other team at 80% or more.</div></div>';
+    h += '<div class="card"><div class="lbl">HOW IT WORKS</div><div class="small">Each week: PLAY your game (you call every play), SIM it, or ENTER STATS if you played it somewhere else (type what you know, the rest gets simmed). Trades close after the deadline. After the Super Bowl: the 7-round NFL Draft, re-sign or franchise-tag your expiring players, 3 days of free agency, then cut-down day (53 players). Hard cap: you have to be under it to start the season. Trades need the other team at 80% or more.</div></div>';
     h += '<div class="card"><div class="lbl">IMPORT SCOREBOARD STATS</div><div class="small">Played a real game and kept stats in the Scoreboard app? In Scoreboard, open the game (or season), tap <b>Stat sheet for NFL Rebuilder</b> and save it to Files. Then pick it here and the stats get added to your players.' + ((s.sbImported || []).length ? ' <span class="dim">(' + s.sbImported.length + ' game' + (s.sbImported.length === 1 ? '' : 's') + ' imported so far)</span>' : '') + '</div><label class="btn wide">CHOOSE STAT SHEET<input type="file" accept=".json,application/json" data-ch="sbfile" hidden></label></div>';
     h += '<div class="row"><button class="btn" data-a="tab" data-v="news">NEWS</button><button class="btn" data-a="tab" data-v="sched">SCHEDULE</button><button class="btn gold" data-a="exit">SAVE &amp; EXIT</button></div>';
     return h;

@@ -375,3 +375,16 @@ input[type=range] { width: 100%; accent-color: var(--gold); margin: 8px 0 14px; 
 
 .sbrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)}.sbrow>div{flex:1;min-width:0}.sbrow select{max-width:52%}
 .sbnext{display:flex;gap:10px;align-items:flex-start;background:rgba(242,182,50,.12);border:1px solid rgba(242,182,50,.5);border-radius:10px;padding:10px;margin:10px 0}.sbnext input{width:22px;height:22px;margin-top:2px;flex:none}
+/* create a player */
+.cpg { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.cpg input { font-family: var(--hd); font-style: italic; font-weight: 900; font-size: 22px; padding: 6px 10px; }
+.cpos button { min-width: 44px; }
+.pcr { grid-template-columns: repeat(4, 1fr); }
+/* enter stats */
+.fxr { background: var(--panel2); margin: 6px 0; padding: 8px 10px; border-left: 3px solid var(--gold); }
+.fxh { display: flex; align-items: center; gap: 8px; }
+.fxh .x { clip-path: none; background: none; color: var(--dim); font-size: 24px; padding: 0 6px; line-height: 1; }
+.fxg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 8px; margin-top: 6px; }
+.fxg label { font-family: var(--hd); font-weight: 800; font-size: 11px; letter-spacing: .06em; color: var(--dim); display: block; }
+.fxg input { width: 100%; font-family: var(--hd); font-style: italic; font-weight: 900; font-size: 20px; padding: 5px 8px; background: var(--ink); color: var(--text); border: 1px solid var(--line2); border-radius: 0; margin-top: 2px; }
+.fxadd { font-family: var(--hd); font-weight: 800; font-size: 16px; letter-spacing: .04em; color: var(--gold); margin-top: 8px; }

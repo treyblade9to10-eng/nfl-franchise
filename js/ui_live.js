@@ -151,7 +151,7 @@
   }
   UI.boxModal = function (g) {
     var s = S(), w = g.hs > g.as ? g.h : g.hs < g.as ? g.a : null;
-    var h = '<div class="bxhead"><div>' + UI.logo(g.a, 40) + '<b class="' + (w === g.a ? 'win' : '') + '">' + g.as + '</b></div><div class="dim">' + (g.po ? U.esc(g.po) : g.w ? 'WEEK ' + g.w : '') + (g.ot ? ' &middot; OT' : '') + (g.live ? ' &middot; PLAYED' : g.set ? ' &middot; SCORE SET' : '') + '</div><div><b class="' + (w === g.h ? 'win' : '') + '">' + g.hs + '</b>' + UI.logo(g.h, 40) + '</div></div>';
+    var h = '<div class="bxhead"><div>' + UI.logo(g.a, 40) + '<b class="' + (w === g.a ? 'win' : '') + '">' + g.as + '</b></div><div class="dim">' + (g.po ? U.esc(g.po) : g.w ? 'WEEK ' + g.w : '') + (g.ot ? ' &middot; OT' : '') + (g.live ? ' &middot; PLAYED' : g.set ? ' &middot; SCORE SET' : '') + (g.fx ? ' &middot; YOUR STATS' : '') + '</div><div><b class="' + (w === g.h ? 'win' : '') + '">' + g.hs + '</b>' + UI.logo(g.h, 40) + '</div></div>';
     h += boxHtml(g);
     if (g.pbp && g.pbp.length) h += '<details class="pbpd"><summary>PLAY-BY-PLAY</summary><div class="pbp">' + g.pbp.slice(-60).map(function (e) { return '<div class="pl k-' + e[3] + '"><span class="pc">' + (e[0] <= 4 ? 'Q' + e[0] : 'OT') + ' ' + e[1] + '</span><span class="pt">' + U.esc(e[2]) + '</span></div>'; }).join('') + '</div></details>';
     h += '<div class="row"><button class="btn gold" data-a="close">CLOSE</button></div>';
