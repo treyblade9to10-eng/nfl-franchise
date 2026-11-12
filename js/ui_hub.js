@@ -136,7 +136,7 @@
   var GROUPS = [['OFF', 'OFFENSE'], ['DEF', 'DEFENSE'], ['ST', 'SPECIAL'], ['ALL', 'ALL']];
   V.roster = function (p) {
     var s = S(), g = p.g || 'OFF', bp = L.byPos(s.user), n = L.roster(s.user).length, mx = L.rosterMax();
-    var h = '<div class="hrow"><h2>ROSTER <span class="dim ' + (n > mx ? 'neg' : '') + '">' + n + '/' + mx + '</span></h2><div><button class="btn sm" data-a="compare">MATCHUP</button> <button class="btn sm" data-a="autodepth">BEST DEPTH</button></div></div>';
+    var h = '<div class="hrow"><h2>ROSTER <span class="dim ' + (n > mx ? 'neg' : '') + '">' + n + '/' + mx + '</span></h2><div><button class="btn sm" data-a="compare">MATCHUP</button> <button class="btn sm" data-a="autodepth">BEST DEPTH</button> <button class="btn sm" data-a="sbsend">TO SCOREBOARD</button></div></div>';
     h += '<button class="btn gold wide" data-a="cpnew">+ CREATE A PLAYER</button>';
     h += '<div class="subtabs">' + GROUPS.map(function (x) { return '<button data-a="rgrp" data-g="' + x[0] + '" class="' + (g === x[0] ? 'on' : '') + '">' + x[1] + '</button>'; }).join('') + '</div>';
     if (g === 'ALL') {
@@ -294,6 +294,7 @@
     var s = S(), t = L.team(p.id), R = L.ratings(p.id), bp = L.byPos(p.id);
     var h = '<button class="back" data-a="tab" data-v="league">BACK</button><div class="thead" style="--tc:' + t.c1 + '">' + UI.logo(p.id, 58) + '<div><h2>' + U.esc(L.teamName(p.id)) + '</h2><div class="dim">' + UI.rec(t) + ' &middot; ' + t.conf + ' ' + t.div + ' &middot; OVR ' + Math.round(R.ovr) + ' (OFF ' + Math.round(R.off) + ', DEF ' + Math.round(R.def) + ') &middot; ' + (t.strat === 'rebuild' ? 'Rebuilding' : 'Contending') + '</div></div></div>';
     if (p.id !== s.user) h += '<div class="row"><button class="btn" data-a="compare" data-id="' + p.id + '">MATCHUP VS YOU</button>' + (Sim.tradeOpen() ? '<button class="btn gold" data-a="tradewith" data-id="' + p.id + '">TRADE WITH THEM</button>' : '') + '</div>';
+    h += '<div class="row"><button class="btn" data-a="sbsend" data-id="' + p.id + '">SEND TO SCOREBOARD</button></div>';
     h += '<div class="card">' + UI.capBar(p.id) + '</div>';
     L.ALLPOS.forEach(function (pos) {
       if (!bp[pos].length) return;
@@ -353,6 +354,7 @@
     var dead = (L.team(s.user).dead || []).filter(function (d) { return d.y >= s.season; });
     if (dead.length || L.deadNow(s.user) > 0) h += '<div class="card"><div class="lbl">DEAD MONEY ' + s.season + '</div><div class="lrow"><span class="ln">Old deals + IR (real)</span><b>' + U.money(L.deadNow(s.user) - U.sum(dead.filter(function (d) { return d.y === s.season; }), function (d) { return d.amt; })) + '</b></div>' + dead.map(function (d) { return '<div class="lrow"><span class="ln">' + U.esc(d.n) + ' <span class="dim">' + d.y + '</span></span><b>' + U.money(d.amt) + '</b></div>'; }).join('') + '</div>';
     h += '<div class="card"><div class="lbl">HOW IT WORKS</div><div class="small">Each week: PLAY your game (you call every play), SIM it, or ENTER STATS if you played it somewhere else (type what you know, the rest gets simmed). Trades close after the deadline. After the Super Bowl: the 7-round NFL Draft, re-sign or franchise-tag your expiring players, 3 days of free agency, then cut-down day (53 players). Hard cap: you have to be under it to start the season. Trades need the other team at 80% or more.</div></div>';
+    h += '<div class="card"><div class="lbl">SEND A TEAM TO SCOREBOARD</div><div class="small">Play a real game with your starters and keep stats in the Scoreboard app. Any team works: open them from the League tab and tap Send to Scoreboard.</div><button class="btn wide" data-a="sbsend">SEND MY TEAM</button></div>';
     h += '<div class="card"><div class="lbl">IMPORT SCOREBOARD STATS</div><div class="small">Played a real game and kept stats in the Scoreboard app? In Scoreboard, open the game (or season), tap <b>Stat sheet for NFL Rebuilder</b> and save it to Files. Then pick it here and the stats get added to your players.' + ((s.sbImported || []).length ? ' <span class="dim">(' + s.sbImported.length + ' game' + (s.sbImported.length === 1 ? '' : 's') + ' imported so far)</span>' : '') + '</div><label class="btn wide">CHOOSE STAT SHEET<input type="file" accept=".json,application/json" data-ch="sbfile" hidden></label></div>';
     h += '<div class="row"><button class="btn" data-a="tab" data-v="news">NEWS</button><button class="btn" data-a="tab" data-v="sched">SCHEDULE</button><button class="btn gold" data-a="exit">SAVE &amp; EXIT</button></div>';
     return h;
