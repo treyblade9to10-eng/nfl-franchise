@@ -384,7 +384,13 @@ var Off = (function () {
       expiring(tid).forEach(function (p) {
         var ask = p.ask || setAsk(p), v = L.playerValue(p, tid);
         if (!t.tagUsed && p.ovr >= 86 && p.age <= 30 && L.capSpace(tid) > tagAmount(p.pos) + 6 && U.rnd() < 0.6) { resign(p.id, true); return; }
-        if (v > ask.amt * 0.6 && p.ovr >= 66 && L.capSpace(tid) > ask.amt + 4 && U.rnd() < 0.8) resign(p.id);
+        var good = p.ovr >= 80 && p.age <= 31, buf = good ? 0.5 : 4;
+        // teams fight to keep their good players: restructure big deals to make room
+        if (good && L.capSpace(tid) < ask.amt + buf) {
+          L.roster(tid).filter(function (x) { return x.id !== p.id && canRestructure(x); }).sort(function (x, y) { return (y.sal[0] || 0) - (x.sal[0] || 0); }).slice(0, 3)
+            .forEach(function (x) { if (L.capSpace(tid) < ask.amt + buf) restructure(x.id); });
+        }
+        if (v > ask.amt * 0.6 && p.ovr >= 66 && L.capSpace(tid) > ask.amt + buf && U.rnd() < (good ? 0.92 : 0.75)) resign(p.id);
         else letGo(p.id);
       });
     });

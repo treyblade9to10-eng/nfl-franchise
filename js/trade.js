@@ -129,8 +129,12 @@ var Trade = (function () {
     for (var i = 0; i < tries.length; i++) {
       var tr = buildOffer(sel, tries[i], [v.id], []);
       if (!tr) continue;
-      var rev = { a: tr.b, b: tr.a, ap: tr.bp, bp: tr.ap, apk: tr.bpk, bpk: tr.apk };
-      if (evaluate(rev).pct >= 60) { execute(tr); return; }
+      // seller (rebuilding) has to like it too: the buyer adds more until it does
+      var rev = { a: tr.b, b: tr.a, ap: tr.bp.slice(), bp: tr.ap.slice(), apk: tr.bpk.slice(), bpk: tr.apk.slice() };
+      if (!evaluate(rev).ok && !whatTheyWant(rev)) continue;
+      var fin = { a: sel, b: tries[i], ap: rev.bp, bp: rev.ap, apk: rev.bpk, bpk: rev.apk };
+      if (validate(fin).length || evaluate(fin).pct < 55) continue;
+      execute(fin); return;
     }
   }
   function incomingOffer() {
